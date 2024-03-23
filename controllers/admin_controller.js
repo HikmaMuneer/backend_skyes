@@ -29,6 +29,19 @@ module.exports.controller = (app, io, socket_list ) => {
     const msg_type_update = "Type updated successfully";
     const msg_type_delete = "Type deleted successfully";
 
+    //Messages for product
+    const msg_product_added = "Product added successfully";
+    const msg_product_update = "Product updated successfully";
+    const msg_product_delete = "Product deleted successfully";
+
+    //Messages for quantity
+    const msg_quantity_added = "Quantity added successfully";
+    const msg_quantity_update = "Quantity updated successfully";
+    const msg_quantity_delete = "Quantity deleted successfully";
+
+    //Messages for quantity
+    const msg_product_image_added = "Product Image added successfully";
+    const msg_product_image_delete = "Product Image deleted successfully";
 
 
     //Brand Add brand Endpoint
@@ -529,6 +542,377 @@ module.exports.controller = (app, io, socket_list ) => {
         }, "2")
     })
 
+
+
+
+
+    //Add Product Endpoint
+    app.post('/api/admin/product_add', (req,res) =>{
+        var form = new multiparty.Form();
+
+        checkAccessToken(req.headers, res, (uObj) =>{
+            form.parse(req, (err,reqObj, files) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return
+                }
+                 helper.Dlog("----------Parameter----------")
+                 helper.Dlog(reqObj)
+                 helper.Dlog("----------Files----------")
+                 helper.Dlog(files)
+
+                 helper.CheckParameterValid(res, reqObj, ["name","detail","cat_id", "brand_id","type_id", "unit_name", "unit_value", "quantity", "price", "stocked_date"], () => {
+                    helper.CheckParameterValid(res, files, ["image"], () => {
+                        var imageNamePathArr = [];
+                        var fullImageNamePathArr = [];
+                        files.image.forEach( imageFile => {
+                            var extension = imageFile.originalFilename.substring(imageFile.originalFilename.lastIndexOf(".") + 1);
+                            var imageFileName = helper.fileNameGenerate(extension);
+
+                            imageNamePathArr.push(imageFileName);
+                            fullImageNamePathArr.push(helper.ImagePath() + imageFileName);
+                            saveImage(imageFile, imageSavePath + imageFileName );
+                        });
+
+                        helper.Dlog(imageNamePathArr);
+                        helper.Dlog(fullImageNamePathArr);
+
+                        db.query("INSERT INTO `product_detail`(`cat_id`, `brand_id`, `type_id`, `name`, `detail`, `unit_name`, `unit_value`, `quantity`, `price`,`created_date`, `modify_date`) VALUES (?,?,?,?,?,?,?,?,?, NOW(),NOW())", [reqObj.cat_id[0], reqObj.brand_id[0], reqObj.type_id[0], reqObj.name[0], reqObj.detail[0], reqObj.unit_name[0], reqObj.unit_value[0], reqObj.quantity[0], reqObj.price[0]], (err, result) => {
+                            if(err){
+                                helper.ThrowHtmlError(err, res);
+                                return
+                            }
+
+                            if(result){
+
+                                // [{
+                                //     "name":"Shoes",
+                                //     "value":"20"
+                                // },{
+                                //     "name":"Pants",
+                                //     "value":"10"
+                                // }]
+
+                                var stockInsertData =[]
+
+                                var stockDataArr = JSON.parse(reqObj.stocked_date[0])
+
+                                stockDataArr.forEach( nObj =>{
+                                    stockInsertData.push([result.insertId, nObj.name, nObj.value]);
+                                });
+                                
+
+                                if(stockDataArr.length > 0 ){
+                                    db.query("INSERT INTO `quantity_detail`(`prod_id`,`prod_name`, `quantity`) VALUES ? ", [stockInsertData],(err,nResult) => {
+                                    
+                                        if(err){
+                                            helper.ThrowHtmlError(err, res);
+                                            return
+                                        }
+    
+                                        if(nResult){
+                                            helper.Dlog("Stock Insert success");
+                                        }else{
+                                            helper.Dlog("Stock Insert fail");
+                                        }
+                                    })
+                                }
+
+                                var imageInsertArr = []
+                                 
+                                imageNamePathArr.forEach(imagePath => {
+                                    imageInsertArr.push([result.insertId, imagePath]);
+                                });
+
+                                db.query("INSERT INTO `image_detail`(`prod_id`, `image`) VALUES ?", [imageInsertArr], (err, iResult) => {
+                                    if(err){
+                                        helper.ThrowHtmlError(err, res);
+                                        return
+                                    }
+
+                                    if(iResult){
+                                        helper.Dlog("imageInsertArr success");
+                                    }else{
+                                        helper.Dlog("imageInsertArr Fail");
+                                    }
+                                })
+
+                                res.json({ "status": "1", "message": msg_product_added })
+                                
+                            }else{
+                                res.json({ "status": "0", "message": msg_fail })
+                            }
+                        })
+                                
+                    })
+                 })
+            })
+
+        })
+    })
+
+    //Update Product Endpoint
+    app.post('/api/admin/product_update', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["prod_id","name","detail","cat_id", "brand_id","type_id", "unit_name", "unit_value", "quantity", "price"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("UPDATE `product_detail` SET `cat_id`= ?,`brand_id`= ?,`type_id`= ?,`name`= ?,`detail`= ?,`unit_name`= ?,`unit_value`= ?,`quantity`= ?,`price`= ?,`modify_date`= NOW() WHERE `prod_id`= ? AND `status` = ?" , [reqObj.cat_id, reqObj.brand_id, reqObj.type_id, reqObj.name, reqObj.detail, reqObj.unit_name, reqObj.unit_value, reqObj.quantity, reqObj.price, reqObj.prod_id,"1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_product_update
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+
+        }, "2")
+        })
+    })
+
+    //Delete Product Endpoint
+    app.post('/api/admin/product_delete', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["prod_id"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("UPDATE `product_detail` SET `status`= ?,`modify_date`= NOW() WHERE `prod_id`= ? AND `status` = ?" , ["2", reqObj.prod_id, "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_product_delete
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+
+        }, "2")
+        })
+    })
+
+
+
+
+    //Add Product Stocks Endpoint
+    app.post('/api/admin/product_stock_add', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["prod_id","prod_name","quantity"], () => {
+
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("INSERT INTO `quantity_detail`(`prod_id`, `prod_name`, `quantity`, `created_date`, `modify_date`) VALUES (?,?,?, NOW(), NOW())", [
+                        reqObj.prod_id,reqObj.prod_name,reqObj.quantity
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result){
+                            res.json({
+                                    "status":"1", "message":msg_quantity_added
+                            });
+                        } else {
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                     })
+                
+
+            }, "2" )
+            
+        })
+    })
+
+
+    //Update Product Stocks Endpoint
+    app.post('/api/admin/product_stock_update', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["prod_id","quantity_id","prod_name","quantity"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("UPDATE `quantity_detail` SET `prod_name`=?,`quantity`=?,`modify_date`=NOW() WHERE `prod_id`= ? AND `quantity_id` = ? AND `status` = ?" , [
+                        reqObj.prod_name, reqObj.quantity, reqObj.prod_id, reqObj.quantity_id ,"1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_quantity_update
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+
+        }, "2")
+        })
+    })
+
+    //Delete Product Stocks Endpoint
+        app.post('/api/admin/product_stock_delete', (req, res) => {
+            helper.Dlog(req.body);
+            var reqObj =  req.body;
+
+            helper.CheckParameterValid(res, reqObj, ["prod_id","quantity_id"], () => {
+                
+                checkAccessToken(req.headers, res, (uObj) =>{
+                    
+                        db.query("UPDATE `quantity_detail` SET `status`=?,`modify_date`=NOW() WHERE `prod_id`= ? AND `quantity_id` = ? AND `status` = ?" , [
+                            "2", reqObj.prod_id, reqObj.quantity_id ,"1"
+                        ], (err, result) => {
+
+                            if(err){
+                                helper.ThrowHtmlError(err, res);
+                                return;
+                            }
+
+                            if(result.affectedRows > 0){
+                                res.json({
+                                    "status": "1", "message": msg_quantity_delete
+                            });
+                            
+                            } else{
+                                res.json({ "status": "0", "message": msg_fail })
+                            }
+                    })
+
+            }, "2")
+            })
+        })
+
+
+
+
+    //Add Product Image Endpoint
+    app.post('/api/admin/product_image_add', (req,res) =>{
+        var form = new multiparty.Form();
+
+        checkAccessToken(req.headers, res, (uObj) =>{
+            form.parse(req, (err,reqObj, files) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return
+                }
+                 helper.Dlog("----------Parameter----------")
+                 helper.Dlog(reqObj)
+                 helper.Dlog("----------Files----------")
+                 helper.Dlog(files)
+
+                 helper.CheckParameterValid(res, reqObj, ["prod_id"], () => {
+                    helper.CheckParameterValid(res, files, ["image"], () => {
+                        var extension = files.image[0].originalFilename.substring(files.image[0].originalFilename.lastIndexOf(".") + 1);
+
+                        var imageFileName = "product/" + helper.fileNameGenerate(extension);
+                        var newPath = imageSavePath + imageFileName;
+                        fs.rename(files.image[0].path, newPath, (err) => {
+                            if(err){
+                                helper.ThrowHtmlError(err, res);
+                                return
+                            } else {
+
+                                db.query("INSERT INTO `image_detail`(`prod_id`, `image`, `created_date`, `modify_date`) VALUES (?,?, NOW(), NOW())", [
+                                    reqObj.prod_id[0], imageFileName
+                                ], (err, result) => {
+            
+                                    if(err){
+                                        helper.ThrowHtmlError(err, res);
+                                        return;
+                                    }
+            
+                                    if(result){
+                                        res.json({
+                                                "status":"1", "message":msg_product_image_added
+                                        });
+                                    } else {
+                                        res.json({ "status": "0", "message": msg_fail })
+                                    }
+                                 })
+                            }
+                        })
+                    })
+                 })
+            })
+
+
+        })
+    })
+
+    //Delete Product Image Endpoint
+    app.post('/api/admin/product_image_delete', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["prod_id","img_id"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                
+                    db.query("UPDATE `image_detail` SET `status`= ?, `modify_date` = NOW() WHERE `prod_id`= ? AND `img_id`=? AND `status`=?" , [
+                    "2", reqObj.prod_id,reqObj.img_id,"1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_product_image_delete
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+        }, "2")
+        })
+    })
+
+
+}
+
+function saveImage(imageFile, savePath ) {
+    fs.rename(imageFile.path, savePath, (err) => {
+
+        if (err) {
+            helper.ThrowHtmlError(err);
+            return;
+        }
+    })
 }
 
 function checkAccessToken(headerObj, res, callback, require_type=""){
@@ -560,3 +944,4 @@ function checkAccessToken(headerObj, res, callback, require_type=""){
     })
 
 }
+
