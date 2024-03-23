@@ -17,7 +17,7 @@ module.exports.controller = (app, io, socket_list ) => {
     //Messages for brands
     const msg_brand_added = "Brand added successfully";
     const msg_brand_update = "Brand updated successfully";
-    const msg_brand_delete = "Brand deleted successfully"
+    const msg_brand_delete = "Brand deleted successfully";
 
     //Messages for category
     const msg_category_added = "Category added successfully";
@@ -42,6 +42,21 @@ module.exports.controller = (app, io, socket_list ) => {
     //Messages for quantity
     const msg_product_image_added = "Product Image added successfully";
     const msg_product_image_delete = "Product Image deleted successfully";
+
+    //Messages for zone
+    const msg_zone_added = "Zone added successfully";
+    const msg_zone_update = "Zone updated successfully";
+    const msg_zone_delete = "Zone deleted successfully";
+    
+    //Messages for area
+    const msg_area_added = "Area added successfully";
+    const msg_area_update = "Area updated successfully";
+    const msg_area_delete = "Area deleted successfully";
+
+    //Messages for area
+    const msg_offer_added = "Offer added successfully";
+    const msg_offer_delete = "Offer deleted successfully";
+
 
 
     //Brand Add brand Endpoint
@@ -544,8 +559,6 @@ module.exports.controller = (app, io, socket_list ) => {
 
 
 
-
-
     //Add Product Endpoint
     app.post('/api/admin/product_add', (req,res) =>{
         var form = new multiparty.Form();
@@ -567,7 +580,7 @@ module.exports.controller = (app, io, socket_list ) => {
                         var fullImageNamePathArr = [];
                         files.image.forEach( imageFile => {
                             var extension = imageFile.originalFilename.substring(imageFile.originalFilename.lastIndexOf(".") + 1);
-                            var imageFileName = helper.fileNameGenerate(extension);
+                            var imageFileName = "product/"+helper.fileNameGenerate(extension);
 
                             imageNamePathArr.push(imageFileName);
                             fullImageNamePathArr.push(helper.ImagePath() + imageFileName);
@@ -749,7 +762,6 @@ module.exports.controller = (app, io, socket_list ) => {
         })
     })
 
-
     //Update Product Stocks Endpoint
     app.post('/api/admin/product_stock_update', (req, res) => {
         helper.Dlog(req.body);
@@ -783,7 +795,7 @@ module.exports.controller = (app, io, socket_list ) => {
     })
 
     //Delete Product Stocks Endpoint
-        app.post('/api/admin/product_stock_delete', (req, res) => {
+    app.post('/api/admin/product_stock_delete', (req, res) => {
             helper.Dlog(req.body);
             var reqObj =  req.body;
 
@@ -812,7 +824,7 @@ module.exports.controller = (app, io, socket_list ) => {
 
             }, "2")
             })
-        })
+    })
 
 
 
@@ -900,6 +912,399 @@ module.exports.controller = (app, io, socket_list ) => {
                 })
         }, "2")
         })
+    })
+
+    //Endpoint for product list
+    app.post('/api/admin/product_list', (req,res)=>{
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+            checkAccessToken(req.headers, res, (uObj) =>{
+                
+                    db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name` FROM `product_detail` AS `pd` "+
+                    "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
+                    "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
+                    "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
+                    "WHERE `pd`.`status`=? ORDER BY `pd`.`prod_id` DESC " , [
+                    "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        res.json({
+                            "status": "1", "payload": result
+                        });
+                })
+        }, "2")
+    })
+
+    //Endpoint for product list
+    app.post('/api/admin/product_detail', (req,res)=>{
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        checkAccessToken(req.headers, res, (uObj) =>{
+
+            helper.CheckParameterValid(res, reqObj, ["prod_id"], () =>{
+
+                getProductDetail(res, reqObj.prod_id);
+                    
+            })
+        }, "2")
+    })
+
+    //Function for product Details
+    function getProductDetail(res ,prod_id){
+        db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name` FROM `product_detail` AS `pd` "+
+                    "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
+                    "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
+                    "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
+                    "WHERE `pd`.`status`=? AND `pd`.`prod_id`= ? ; "+
+                    
+                    "SELECT `quantity_id`, `prod_id`, `prod_name`, `quantity` FROM `quantity_detail` WHERE `prod_id`=? AND `status`= ? ORDER BY `prod_name` ;" +
+                    
+                    "SELECT `img_id`, `prod_id`, `image` FROM `image_detail` WHERE `prod_id`=? AND `status`= ?", [
+
+                    "1", prod_id, prod_id,"1", prod_id,"1",
+
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        // result= result.replace_null()
+                        // helper.Dlog(result);
+
+                        if(result[0].length > 0){
+
+                            result[0][0].quantity_list = result[1];
+                            result[0][0].images = result[2];
+
+                            res.json({
+                                "status": "1", "payload": result[0][0]
+                            });
+
+                        }else{
+                            res.json({"status":"0", "message": "invalid item"})
+                        }
+
+                        
+                })
+    }
+
+
+
+    //Add Zone Endpoint
+    app.post('/api/admin/zone_add', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["zone_name"], () => {
+
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                db.query("SELECT `zone_id`, `name` FROM `zone_details` WHERE `name` = ? AND `status` = ?", [reqObj.zone_name, "1"],(err, result) =>{
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return;
+                }
+
+                if(result.length > 0){
+                    res.json({"status":"1", "payload":result[0],"message":msg_already_added});
+                }else{
+                    db.query("INSERT INTO `zone_details`(`name`, `created_date`, `modify_date`) VALUES (?, NOW(), NOW())", [
+                        reqObj.zone_name
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result){
+                            res.json({
+                                    "status":"1", "payload":{
+                                    "zone_id":result.insertId,
+                                    "name": reqObj.zone_name,
+                                }, "message":msg_zone_added
+                            });
+                        } else {
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                     })
+                    }
+                })
+
+            }, "2" )
+            
+        })
+    })
+
+    //Update Zone Endpoint
+    app.post('/api/admin/zone_update', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["zone_id","zone_name"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+
+                    db.query("UPDATE `zone_details` SET `name`= ?, `modify_date` = NOW() WHERE `zone_id`= ? AND `status` = ?" , [
+                        reqObj.zone_name, reqObj.zone_id, "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_zone_update
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+
+        }, "2")
+        })
+    })
+
+    //Delete Zone Endpoint
+    app.post('/api/admin/zone_delete', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["zone_id"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("UPDATE `zone_details` SET `status`= ?, `modify_date` = NOW() WHERE `zone_id`= ?" , [
+                       "2", reqObj.zone_id,
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_zone_delete
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+        }, "2")
+        })
+    })
+
+    //List Zone Endpoint
+    app.post('/api/admin/zone_list', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("SELECT `zone_id`, `name` FROM `zone_details` WHERE `status`= ?" , [
+                       "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        res.json({
+                            "status": "1", "payload": result
+                         });
+                })
+        }, "2")
+    })
+
+
+    //Add Area Endpoint
+    app.post('/api/admin/area_add', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["area_name", "zone_id" ], () => {
+
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                db.query("SELECT `area_id`, `name` FROM `area_detail` WHERE `name` = ? AND `zone_id` = ? AND `status` = ?", [reqObj.area_name, reqObj.zone_id,"1"],(err, result) =>{
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return;
+                }
+
+                if(result.length > 0){
+                    res.json({"status":"1", "payload":result[0],"message":msg_area_added});
+                }else{
+                    db.query("INSERT INTO `area_detail`(`name`, `zone_id`,`created_date`, `modify_date`) VALUES (?,?, NOW(), NOW())", [
+                        reqObj.area_name, reqObj.zone_id
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result){
+                            res.json({
+                                    "status":"1", "message":msg_area_added
+                            });
+                        } else {
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                     })
+                    }
+                })
+
+            }, "2" )
+            
+        })
+    })
+
+    //Update Area Endpoint
+    app.post('/api/admin/area_update', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["area_id", "zone_id","area_name"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+
+                    db.query("UPDATE `area_detail` SET `name`= ?, `zone_id` = ?, `modify_date` = NOW() WHERE `area_id`= ? AND `status` = ? " , [
+                        reqObj.area_name, reqObj.zone_id, reqObj.area_id, "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_area_update
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+
+        }, "2")
+        })
+    })
+
+    //Delete Area Endpoint
+    app.post('/api/admin/area_delete', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["area_id"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+                    db.query("UPDATE `area_detail` SET `status`= ?, `modify_date` = NOW() WHERE `area_id`= ?" , [
+                       "2", reqObj.area_id,
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_area_delete
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+        }, "2")
+        })
+    })
+
+    //List Area Endpoint
+    app.post('/api/admin/area_list', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+            checkAccessToken(req.headers, res, (uObj) => {
+                 
+                    db.query("SELECT `ad`.`area_id`, `ad`.`zone_id`,`ad`.`name`,`zd`.`name` AS `zone_name` FROM `area_detail` AS `ad` INNER JOIN `zone_details` AS `zd` ON `zd`.`zone_id`=`ad`.`zone_id` AND `zd`.`status` = '1' WHERE `ad`.`status`= ? " , [
+                       "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        res.json({
+                            "status": "1", "payload": result
+                         });
+                })
+        }, "2")
+    })
+
+
+    //Add Offer Endpoint
+    app.post('/api/admin/offer_add', (req, res) => {
+            helper.Dlog(req.body);
+            var reqObj =  req.body;
+    
+            helper.CheckParameterValid(res, reqObj, ["area_name", "zone_id" ], () => {
+    
+                checkAccessToken(req.headers, res, (uObj) =>{
+                     
+                    db.query("SELECT `area_id`, `name` FROM `area_detail` WHERE `name` = ? AND `zone_id` = ? AND `status` = ?", [reqObj.area_name, reqObj.zone_id,"1"],(err, result) =>{
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return;
+                    }
+    
+                    if(result.length > 0){
+                        res.json({"status":"1", "payload":result[0],"message":msg_area_added});
+                    }else{
+                        db.query("INSERT INTO `area_detail`(`name`, `zone_id`,`created_date`, `modify_date`) VALUES (?,?, NOW(), NOW())", [
+                            reqObj.area_name, reqObj.zone_id
+                        ], (err, result) => {
+    
+                            if(err){
+                                helper.ThrowHtmlError(err, res);
+                                return;
+                            }
+    
+                            if(result){
+                                res.json({
+                                        "status":"1", "message":msg_area_added
+                                });
+                            } else {
+                                res.json({ "status": "0", "message": msg_fail })
+                            }
+                         })
+                        }
+                    })
+    
+                }, "2" )
+                
+            })
     })
 
 

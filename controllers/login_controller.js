@@ -14,7 +14,7 @@ module.exports.controller = (app, io, socket_list ) => {
     const msg_already_register = "This email has been already registered";
 
     //Login Endpoint
-    app.post('/api/login', (req, res) => {
+    app.post('/api/app/login', (req, res) => {
         helper.Dlog(req.body);
         var reqObj =  req.body;
 
@@ -51,7 +51,7 @@ module.exports.controller = (app, io, socket_list ) => {
     } )
 
     //Sign Up Endpint
-    app.post('/api/sign_up', (req, res) => {
+    app.post('/api/app/sign_up', (req, res) => {
         helper.Dlog(req.body);
         var reqObj =  req.body;
 
@@ -98,95 +98,26 @@ module.exports.controller = (app, io, socket_list ) => {
         }) 
     })
 
+    app.post('/api/app/get_zone_area', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body;
 
-
-    app.post('/api/upload_image', (req, res) => {
-        var form = new multiparty.Form();
-        form.parse(req, (err, reqObj, files) => {
-            if(err) {
-                helper.ThrowHtmlError(err, res);
+        db.query("SELECT `zone_id`, `name` FROM `zone_details` WHERE `status`= ? ;" +
+        "SELECT `ad`.`area_id`, `ad`.`zone_id`,`ad`.`name`,`zd`.`name` AS `zone_name` FROM `area_detail` AS `ad` "+
+        "INNER JOIN `zone_details` AS `zd` ON `zd`.`zone_id`=`ad`.`zone_id` AND `zd`.`status` = '1' "+
+        "WHERE `ad`.`status`= ? ", ["1","1"], (err, result) => {
+            if(err){
+                helper.ThrowHtmlError(err,res);
                 return;
             }
 
-            helper.Dlog("--------------- Parameter --------------")
-            helper.Dlog(reqObj);
+        result[0].forEach(zObj => {
+            zObj.area_list = result[1].filter((aObj) => {
+                return aObj.zone_id == zObj.zone_id
+            });
+        });
+        res.json({ "status": "1", "payload": result[0] , "message": msg_success })
 
-            helper.Dlog("--------------- Files --------------")
-            helper.Dlog(files);
-
-            if(files.image != undefined || files.image != null ) {
-                var extension = files.image[0].originalFilename.substring(files.image[0].originalFilename.lastIndexOf(".") + 1 );
-                var imageFileName = helper.fileNameGenerate(extension);
-
-                var newPath = imageSavePath + imageFileName;
-
-                fs.rename(files.image[0].path, newPath, (err) => {
-
-                    if(err) {
-                        helper.ThrowHtmlError(err);
-                        return;
-                    }else{
-
-                        var name = reqObj.name;
-                        var address = reqObj.address;
-
-                        helper.Dlog(name);
-                        helper.Dlog(address);
-
-                        res.json({
-                            "status":"1",
-                            "payload": {"name": name, "address": address, "image":  helper.ImagePath() + imageFileName },
-                            "message": msg_success
-                        })
-                    }
-                })
-            }
-        })
-    })
-
-    app.post('/api/upload_multi_image', (req, res) => {
-        var form = new multiparty.Form();
-        form.parse(req, (err, reqObj, files) => {
-            if (err) {
-                helper.ThrowHtmlError(err, res);
-                return;
-            }
-
-            helper.Dlog("--------------- Parameter --------------")
-            helper.Dlog(reqObj);
-
-            helper.Dlog("--------------- Files --------------")
-            helper.Dlog(files);
-
-            if (files.image != undefined || files.image != null) {
-
-                var imageNamePathArr = []
-                var fullImageNamePathArr = [];
-                files.image.forEach( imageFile => {
-                    var extension = imageFile.originalFilename.substring(imageFile.originalFilename.lastIndexOf(".") + 1);
-                    var imageFileName = helper.fileNameGenerate(extension);
-
-                    imageNamePathArr.push(imageFileName);
-                    fullImageNamePathArr.push(helper.ImagePath() + imageFileName);
-                    saveImage(imageFile, imageSavePath + imageFileName );
-                });
-
-                helper.Dlog(imageNamePathArr);
-                helper.Dlog(fullImageNamePathArr);
-
-                var name = reqObj.name;
-                var address = reqObj.address;
-
-                helper.Dlog(name);
-                helper.Dlog(address);
-                
-
-                res.json({
-                    "status": "1",
-                    "payload": { "name": name, "address": address, "image": fullImageNamePathArr },
-                    "message": msg_success
-                })
-            }
         })
     })
 }
