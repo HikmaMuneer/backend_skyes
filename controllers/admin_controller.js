@@ -1264,49 +1264,95 @@ module.exports.controller = (app, io, socket_list ) => {
     })
 
 
+
+
     //Add Offer Endpoint
     app.post('/api/admin/offer_add', (req, res) => {
-            helper.Dlog(req.body);
-            var reqObj =  req.body;
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
     
-            helper.CheckParameterValid(res, reqObj, ["area_name", "zone_id" ], () => {
+        helper.CheckParameterValid(res, reqObj, ["prod_id", "price", "start_date", "end_date" ], () => {
     
-                checkAccessToken(req.headers, res, (uObj) =>{
+            checkAccessToken(req.headers, res, (uObj) =>{
                      
-                    db.query("SELECT `area_id`, `name` FROM `area_detail` WHERE `name` = ? AND `zone_id` = ? AND `status` = ?", [reqObj.area_name, reqObj.zone_id,"1"],(err, result) =>{
-                    if(err){
-                        helper.ThrowHtmlError(err, res);
-                        return;
-                    }
-    
-                    if(result.length > 0){
-                        res.json({"status":"1", "payload":result[0],"message":msg_area_added});
-                    }else{
-                        db.query("INSERT INTO `area_detail`(`name`, `zone_id`,`created_date`, `modify_date`) VALUES (?,?, NOW(), NOW())", [
-                            reqObj.area_name, reqObj.zone_id
+            
+                db.query("INSERT INTO `offer_detail`(`prod_id`, `price`, `start_date`, `end_date`,`created_date`, `modify_date`) VALUES (?,?,?,?, NOW(), NOW())", [
+                            reqObj.prod_id, reqObj.price, reqObj.start_date, reqObj.end_date
                         ], (err, result) => {
     
-                            if(err){
+                        if(err){
                                 helper.ThrowHtmlError(err, res);
                                 return;
-                            }
+                        }
     
-                            if(result){
+                        if(result){
                                 res.json({
-                                        "status":"1", "message":msg_area_added
-                                });
-                            } else {
+                                        "status":"1", "message":msg_offer_added
+                        });
+                        } else {
                                 res.json({ "status": "0", "message": msg_fail })
-                            }
-                         })
                         }
                     })
-    
-                }, "2" )
+            }, "2" )
                 
-            })
+         })
     })
 
+    //Delete Offer Endpoint
+    app.post('/api/admin/offer_delete', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+        helper.CheckParameterValid(res, reqObj, ["offer_id"], () => {
+            
+            checkAccessToken(req.headers, res, (uObj) =>{
+                 
+
+                    db.query("UPDATE `offer_detail` SET `status`= ?, `modify_date` = NOW() WHERE `offer_id`= ? AND `status` = ? " , [
+                        "2", reqObj.offer_id, "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        if(result.affectedRows > 0){
+                            res.json({
+                                "status": "1", "message": msg_offer_delete
+                        });
+                        
+                        } else{
+                            res.json({ "status": "0", "message": msg_fail })
+                        }
+                })
+
+        }, "2")
+        })
+    })
+
+    //List Offers Endpoint
+    app.post('/api/admin/offer_list', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj =  req.body;
+
+            checkAccessToken(req.headers, res, (uObj) => {
+                 
+                    db.query("SELECT `offer_id`, `prod_id`, `price`, `start_date`, `end_date`, `status`, `created_date`, `modify_date` FROM `offer_detail` WHERE `status`= ? " , [
+                       "1"
+                    ], (err, result) => {
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res);
+                            return;
+                        }
+
+                        res.json({
+                            "status": "1", "payload": result
+                         });
+                })
+        }, "2")
+    })
 
 }
 
