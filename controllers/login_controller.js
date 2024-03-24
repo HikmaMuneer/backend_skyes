@@ -12,6 +12,10 @@ module.exports.controller = (app, io, socket_list ) => {
     const msg_fail = "fail";
     const msg_invalidUser = "invalid username and password";
     const msg_already_register = "This email has been already registered";
+    const msg_add_favorite = "Added to favourites";
+    const msg_remove_favorite = "Removed from favourites";
+
+
 
     //Login Endpoint
     app.post('/api/app/login', (req, res) => {
@@ -127,23 +131,26 @@ module.exports.controller = (app, io, socket_list ) => {
         helper.Dlog(req.body);
         var reqObj = req.body;
         checkAccessToken(req.headers, res, () => { 
-            db.query("SELECT `od`.`price` AS `offer_price`, `od`.`start_date`, `od`.`end_date`,`pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `imd`.`image`, `cd`.`cat_name`, `td`.`type_name` FROM `offer_detail` AS `od` "+
+            db.query("SELECT `od`.`price` AS `offer_price`, `od`.`start_date`, `od`.`end_date`,`pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav` FROM `offer_detail` AS `od` "+
             "INNER JOIN `product_detail` AS `pd` ON `pd`.`prod_id` = `od`.`prod_id` AND `pd`.`status` = ? "+
             "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
             "INNER JOIN `category_details` AS `cd` ON `cd`.`cat_id` = `pd`.`cat_id` AND `cd`.`status` = 1 "+
+            "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`status`=1 "+
             "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id` = `td`.`type_id` AND `td`.`status` = 1 "+
             "WHERE `od`.`status` = ? AND  `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() GROUP BY `pd`.`prod_id` ;"+
             
-            "SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `imd`.`image`, `cd`.`cat_name`, `td`.`type_name` FROM `product_detail` AS `pd` "+
+            "SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`,( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav` FROM `product_detail` AS `pd` "+
+            "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`status`=1 "+
             "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
             "INNER JOIN `category_details` AS `cd` ON `cd`.`cat_id` = `pd`.`cat_id` AND `cd`.`status` = 1 "+
             "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id` = `td`.`type_id` AND `td`.`status` = 1 "+
             "WHERE `pd`.`status` = ? AND `pd`.`cat_id` = ? GROUP BY `pd`.`prod_id` ;"+
 
 
-            "SELECT `type_id`, `type_name`, `image`, `color` FROM `type_detail` WHERE `status` =? ;"+
+            "SELECT `type_id`, `type_name`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `color` FROM `type_detail` WHERE `status` =? ;"+
             
-            "SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `imd`.`image`, `cd`.`cat_name`, `td`.`type_name` FROM `product_detail` AS `pd` "+
+            "SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav` FROM `product_detail` AS `pd` "+
+            "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`status`=1 "+
             "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
             "INNER JOIN `category_details` AS `cd` ON `cd`.`cat_id` = `pd`.`cat_id` AND `cd`.`status` = 1 "+
             "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id` = `td`.`type_id` AND `td`.`status` = 1 "+
@@ -188,10 +195,145 @@ module.exports.controller = (app, io, socket_list ) => {
         }, "1")
     })
 
+    //Add and remove favourites
+    app.post('/api/app/add_remove_favorite', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["prod_id"], () =>{
+                db.query("SELECT `fav_id`, `prod_id` FROM `favourite_detail` WHERE `prod_id` = ? AND `user_id` = ? AND `status` = '1' ",[reqObj.prod_id,userObj.user_id],(err,result) => {
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    if(result.length > 0){
+                        //already in fav items and to del
+                        db.query("DELETE FROM `favourite_detail` WHERE `prod_id` = ?, `user_id` = ? ",[reqObj.prod_id,userObj.user_id], (err, result) => {
+                            if(err){
+                                helper.ThrowHtmlError(err, res);
+                                return
+                            } else{
+                                res.json({
+                                    "status": "1",
+                                    "message": msg_remove_favorite
+                                })
+                            }
+                        })
+                        
+                    }else{
+                        //Not added fav items needs to
+                        db.query("INSERT INTO `favourite_detail`(`prod_id`, `user_id`) VALUES (?,?) ",[
+                            reqObj.prod_id, userObj.user_id
+                        ], (err, result) => {
+                            if(err){
+                                helper.ThrowHtmlError(err, res);
+                                return
+                            }
+
+                            if(result){
+                                res.json({
+                                    "status": "1",
+                                    "message": msg_add_favorite
+                                })
+                            }else{
+                                res.json({
+                                    "status": "0",
+                                    "message": msg_fail
+                                })
+                            }
+                        })
+                    }
+                })
+            })
+        },'1')
+    })
+
+    //Favourites list Endpoint
+    app.post('/api/app/favorite_list', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            db.query("SELECT `fd`.`fav_id`,`pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, 1 AS `is_fav` FROM `favourite_detail` AS `fd` "+
+            "INNER JOIN `product_detail` AS `pd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `rd`.`status` = 1"+
+            "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
+                    "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
+                    "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
+                    "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
+            "WHERE `fd`.`user_id` = ? AND `fd`.`status` = '1' ",[userObj.user_id],(err,result) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return
+                }
+
+                res.json({
+                    "status": "1",
+                    "payload": result,
+                    "message":msg_success
+                })
+            })
+        },'1')
+    })
+
+    //Explore list Endpoint
+    app.post('/api/app/explore_category_list', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            db.query("SELECT `cat_id`, `cat_name`, `image`, `color` FROM `category_details` WHERE `status` =1", [],(err,result) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return
+                }
+
+                res.json({
+                    "status": "1",
+                    "payload": result,
+                })
+            })
+        },'1')
+    })
+
+    //Favourites list Endpoint
+    app.post('/api/app/explore_category_items_list', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res,reqObj, ["cat_id"], () => {
+
+            
+            db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav` FROM `product_detail` AS `pd` "+
+                "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`status` = 1 "+
+                "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` AND `pd`.`status`= 1 "+
+                "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
+                "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
+                "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
+                "WHERE `cd`.`cat_id` = ? AND `cd`.`status` = '1' ",[reqObj.cat_id],(err,result) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res);
+                    return
+                }
+
+                res.json({
+                    "status": "1",
+                    "payload": result,
+                    "message": msg_success
+                })
+            })
+            })
+        },'1')
+    })
+
+
     //Function for product Details
     function getProductDetail(res ,prod_id){
-        db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active` FROM `product_detail` AS `pd` "+
+        db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active` FROM `product_detail` AS `pd` "+
                     "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
+                    "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`status`=1 "+
                     "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
                     "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
                     "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
@@ -229,6 +371,7 @@ module.exports.controller = (app, io, socket_list ) => {
                         
                 })
     }
+
     
 }
 
