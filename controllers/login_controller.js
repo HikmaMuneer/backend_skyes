@@ -4,7 +4,7 @@ var multiparty = require('multiparty')
 var fs = require('fs');
 var imageSavePath = "./public/img/"
 var image_base_url = helper/helper.ImagePath();
-
+var deliver_price = 400.0
 
 
 module.exports.controller = (app, io, socket_list ) => {
@@ -19,7 +19,11 @@ module.exports.controller = (app, io, socket_list ) => {
     const msg_add_to_item = "Item added into cart successfully";
     const msg_update_to_item = "Item updated into cart successfully";
     const msg_remove_from_cart = "Item removed from cart successfully";
-
+    const msg_add_address = "Address addded successfully";
+    const msg_update_address = "Address updated successfully";
+    const msg_delete_address = "Address deleted successfully";
+    const msg_add_payment_method = "Payment method addded successfully";
+    const msg_remove_payment_method = "Payment method removed successfully";
 
 
     //Login Endpoint
@@ -107,6 +111,8 @@ module.exports.controller = (app, io, socket_list ) => {
         }) 
     })
 
+
+
     //Locations Endpoint
     app.post('/api/app/get_zone_area', (req, res) => {
         helper.Dlog(req.body);
@@ -130,6 +136,8 @@ module.exports.controller = (app, io, socket_list ) => {
 
         })
     })
+
+
 
     //Offers display endpoint
     app.post('/api/app/home', (req, res) => {
@@ -184,6 +192,7 @@ module.exports.controller = (app, io, socket_list ) => {
     })
 
 
+
     //Products display endpoint
     app.post('/api/app/product_detail', (req,res)=>{
         helper.Dlog(req.body);
@@ -198,6 +207,8 @@ module.exports.controller = (app, io, socket_list ) => {
             })
         }, "1")
     })
+
+
 
     //Add and remove favourites
     app.post('/api/app/add_remove_favorite', (req, res) => {
@@ -332,6 +343,9 @@ module.exports.controller = (app, io, socket_list ) => {
         },'1')
     })
 
+
+
+
     //Add to cart endpoint
     app.post('/api/app/add_to_cart', (req, res) =>{
         helper.Dlog(req.body);
@@ -456,40 +470,419 @@ module.exports.controller = (app, io, socket_list ) => {
         var reqObj = req.body;
 
         checkAccessToken(req.headers, res, (userObj) =>{
+            getUserCart(res, userObj.user_id,(result, total) => {
+                res.json({
+                    "status": "1",
+                    "payload": result,
+                    "total": total.toFixed(2),
+                    "message": msg_success
+                })
+            })
+        })
+    })
 
-                db.query("SELECT `ucd`.`cart_id`, `ucd`.`qty`, `ucd`.`user_id`, `ucd`.`prod_id`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, `od`.`start_date`, `od`.`end_date`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, (CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) AS `item_price`, ((CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) * `ucd`.`qty`) AS `total_price` FROM `cart_detail` AS `ucd` "+
-                "INNER JOIN `product_detail` AS `pd` ON `pd`.`prod_id` = `ucd`.`prod_id` AND `pd`.`status` = 1 "+
-                "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
-                "INNER JOIN `category_details` AS `cd` ON `cd`.`cat_id` = `pd`.`cat_id` AND `cd`.`status` = 1 "+
-                "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`user_id` = ? AND `fd`.`status`= 1 "+
-                "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
-                "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id` = `td`.`type_id` AND `td`.`status` = 1 "+
-                "WHERE `ucd`.`user_id` = ? AND `ucd`.`status` = ? GROUP BY `pd`.`prod_id` ;",[userObj.user_id, userObj.user_id,"1"], (err,result) => {
+
+
+    //Add delivery address endpoint
+    app.post('/api/app/add_delivery_address', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res,reqObj, ["name","type_name","phone","address","city","state","postal_code"],() =>{
+                db.query("INSERT INTO `address_detail`(`user_id`,`name`, `phone`, `address`, `city`, `state`, `type_name`, `postal_code`) VALUES(?,?,?, ?,?,?, ?,?) ",[userObj.user_id, reqObj.name, reqObj.phone, reqObj.address, reqObj.city, reqObj.state, reqObj.type_name,reqObj.postal_code], (err, result) =>{
                     if(err){
                         helper.ThrowHtmlError(err, res);
                         return
                     }
 
-                    var total= result.map((cObj) => {
-                        return cObj.total_price
-                    }).reduce((patSum, a) => patSum + a, 0)
+                    if(result){
+                        res.json({
+                            "status":"1",
+                            "message":msg_add_address
+                        })
+                    }else{
+                        res.json({
+                            "status":"0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        })
+    })
+
+    //Update delivery address endpoint
+    app.post('/api/app/update_delivery_address', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res,reqObj, ["address_id","name","type_name","phone","address","city","state","postal_code"],() =>{
+                db.query("UPDATE `address_detail` SET `name`=?,`phone`=?,`address`=?,`city`=?,`state`=?,`type_name`=?,`postal_code`=?,`modify_date`= NOW() WHERE `user_id` = ? AND `address_id` = ? AND `status` = 1 ",[reqObj.name, reqObj.phone, reqObj.address, reqObj.city, reqObj.state, reqObj.type_name,reqObj.postal_code, userObj.user_id,reqObj.address_id, ], (err, result) =>{
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    if(result.affectedRows > 0){
+                        res.json({
+                            "status":"1",
+                            "message":msg_update_address
+                        })
+                    }else{
+                        res.json({
+                            "status":"0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        })
+    })
+
+    //Delete delivery address endpoint
+    app.post('/api/app/delete_delivery_address', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res,reqObj, ["address_id"],() =>{
+                db.query("UPDATE `address_detail` SET `status`=2,`modify_date`= NOW() WHERE `user_id` = ? AND `address_id` = ? AND `status` = 1 ",[userObj.user_id,reqObj.address_id, ], (err, result) =>{
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    if(result.affectedRows > 0){
+                        res.json({
+                            "status":"1",
+                            "message":msg_delete_address
+                        })
+                    }else{
+                        res.json({
+                            "status":"0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        })
+    })
+
+    //Mark delivery address endpoint
+    app.post('/api/app/mark_default_delivery_address', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res,reqObj, ["address_id"],() =>{
+                db.query("UPDATE `address_detail` SET `is_default` = (CASE WHEN `address_id` =? THEN 1 ELSE 0 END),`modify_date`= NOW() WHERE `user_id` = ? AND `status` = 1 ",[reqObj.address_id, userObj.user_id], (err, result) =>{
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    if(result.affectedRows > 0){
+                        res.json({
+                            "status":"1",
+                            "message":msg_success
+                        })
+                    }else{
+                        res.json({
+                            "status":"0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        })
+    })
+
+   // Get address endpoint
+    app.post('/api/app/delivery_address', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body;
+
+        checkAccessToken(req.headers, res, (userObj) => {
+
+                db.query("SELECT `address_id`, `name`, `phone`, `address`, `city`, `state`, `type_name`, `postal_code`, `is_default` FROM `address_detail` WHERE `user_id` = ? AND `status` = 1 ",[ userObj.user_id], (err, result) =>{
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
 
                     res.json({
                         "status":"1",
                         "payload":result,
-                        "total":total,
                         "message": msg_success
                     })
+
                 })
+        
+        })
+    })
+
+
+     //List of promo code Endpoint
+    app.post('/api/app/promo_code_list', (req, res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+                
+                        db.query("SELECT `promo_code_id`, `code`, `title`, `description`, `type`, `min_order_amount`, `max_discount_amount`, `offer_price`, `start_date`, `end_date`, `created_date`, `modify_date` FROM `promo_code_detail` WHERE `start_date` <= NOW() AND `end_date` >= NOW() AND `status` = 1 ORDER BY `start_date` ",[], (err, result) =>{
+
+                                if(err){
+                                    helper.ThrowHtmlError(err, res)
+                                    return
+                                }
+
+                                res.json({
+                                    "status": "1",
+                                    "payload": result,
+                                    "message":msg_success
+                                })
+                            
+                         })
         }, "1")
     })
 
 
 
+    //Add payment method Endpoint
+    app.post('/api/app/add_payment_method',(req,res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
 
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["name","card_number","card_month","card_year"], () => {
+                db.query("INSERT INTO `payment_method_detail`(`user_id`,`name`, `card_number`, `card_month`, `card_year`) VALUES (?,?,?, ?,?)",[
+                    userObj.user_id, reqObj.name, reqObj.card_number, reqObj.card_month, reqObj.card_year
+                ], (err,result) => {
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    if(result){
+
+                        res.json({
+                            "status":"1",
+                            "message": msg_add_payment_method
+                        })
+                    }else{
+                        res.json({
+                            "status":"0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        })
+
+
+    })
+
+    //Remove payment method Endpoint
+    app.post('/api/app/remove_payment_method',(req,res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["pay_id"], () => {
+                db.query("UPDATE `payment_method_detail` SET `status`= 2 WHERE `pay_id` = ? AND `user_id`= ? AND `status` = 1 ",[
+                    reqObj.pay_id,userObj.user_id
+                ], (err,result) => {
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    if(result.affectedRows > 0){
+
+                        res.json({
+                            "status":"1",
+                            "message": msg_remove_payment_method
+                        })
+                    }else{
+                        res.json({
+                            "status":"0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        })
+
+
+    })
+
+    //Payment methods Endpoint
+    app.post('/api/app/payment_method',(req,res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+  
+                db.query("SELECT `pay_id`, `name`, RIGHT( `card_number`, 4) AS `card_number`, `card_month`, `card_year` FROM `payment_method_detail` WHERE `user_id`= ? AND `status` = 1 ",[
+                    userObj.user_id
+                ], (err,result) => {
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    res.json({
+                        "status":"1",
+                        "payload": result,
+                        "message": msg_success
+                    })
+                })
+        })
+
+
+    })
+
+    //Place order endpoint
+    app.post('/api/app/order_place', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["address_id", "payment_type", "deliver_type", "pay_id", "promo_code_id"], () =>{
+                getUserCart(res, userObj.user_id,(result, total) => {
+                    if(result.length > 0){
+
+                        db.query("SELECT `pay_id`, `user_id`, `card_month`, `card_year` FROM `payment_method_detail` WHERE `pay_id` = ? AND `status`= 1; "+
+                        "SELECT `promo_code_id`, `min_order_amount`, `max_discount_amount`, `offer_price` FROM `promo_code_detail` WHERE `start_date` <= NOW() AND `end_date` >= NOW() AND `status` = 1 AND `promo_code_id` =? ; "+
+                        "SELECT `address_id`, `user_id` FROM `address_detail` WHERE `address_id`= ? AND `user_id` = ? AND `status` = 1 ; ", [reqObj.pay_id, reqObj.promo_code_id, reqObj.address_id, userObj.user_id], (err, pResult) => {
+                            if(err){
+                                helper.ThrowHtmlError(err, res)
+                                return
+                            }
+
+
+                            var deliver_price_amount = 0.0
+
+                            if((reqObj.deliver_type == "1" && pResult[2].length == 0)){
+                                res.json({
+                                    "status": "0",
+                                    "message": "Please select an address"
+                                })
+                                return
+                            }
+
+                            if(reqObj.pay_type == "1"){
+                                deliver_price_amount = deliver_price
+                            }else{
+                                deliver_price_amount = 0.0;
+                            }
+        
+                            
+                            var  final_total = total + deliver_price_amount
+                            var discountAmount = 0.0
+
+                            if(reqObj.promo_code_id != "" ){
+                                if(pResult[1].length > 0){
+                                    //Promo code apply and valid
+                                    if(final_total > pResult[1][0].min_order_amount){
+                                        
+                                        if(pResult[1][0].type == 2){
+                                            //Fixed Discount
+                                            discountAmount = pResult[1][0].offer_price
+                                        }else{
+                                            //% Per
+                                            var disVal = final_total * pResult[1][0].offer_price / 100
+
+                                            if(pResult[1][0].max_discount_amount <= disVal ) {
+                                                //Max discount is more then disVal
+
+                                                discountAmount = pResult[1][0].max_discount_amount
+                                            }else{
+                                                //Max discount is small then disVal
+                                                discountAmount = disVal
+                                            }
+                                        }
+                                        
+
+                                    } else{
+                                        res.json({
+                                            "status": "0",
+                                            "message": "Promo Code not applicable. Minimum applicable amount : LKR "+pResult[1][0].min_order_amount
+                                        })
+                                        return
+                                    }
+                                } else{
+                                    //Promo code apply and invalid
+                                    res.json({
+                                        "status": "0",
+                                        "message": "Sorry, Promo Code not applicable"
+                                    })
+                                    return
+                                }
+                            }
+
+                            if( reqObj.pay_type == "1" || (reqObj.pay_type == "2" && pResult[0].length > 0 )){
+
+                                var cartId = result.map((cObj) => {
+                                    return cObj.cart_id
+                                })
+
+                                var user_pay_price = final_total - discountAmount;
+
+                                db.query("INSERT INTO `order_detail`(`cart_id`, `user_id`, `address_id`, `total_price`, `user_pay_price`, `discount_price`, `deliver_price`, `promo_code_id`, `deliver_type`, `payment_type`) VALUES (?,?,?, ?,?,?, ?,?,?, ?)", [
+                                    cartId.toString(), userObj.user_id, reqObj.address_id, total, user_pay_price, discountAmount, deliver_price_amount, reqObj.promo_code_id, reqObj.deliver_type, reqObj.payment_type
+                                ], (err, result) => {
+                                    if(err){
+                                        helper.ThrowHtmlError(err, res)
+                                        return
+                                    }
+
+                                    if(result){
+                                        res.json({
+                                            "status": "0",
+                                            "payload":{
+                                                "order_id":result.insertId,
+                                                "user_pay_price": user_pay_price,
+                                                "deliver_price": deliver_price_amount,
+                                                "discount_price": discountAmount,
+                                                "total_price": total
+                                            },
+                                            "message": "Your order is placed successfully"
+                                        })
+
+                                    }else{
+                                        res.json({
+                                            "status": "0",
+                                            "message": msg_fail
+                                        })
+                                    }
+                                   
+                                })
+
+                            }else{
+                                res.json({
+                                    "status": "0",
+                                    "message": msg_fail
+                                })
+                            }
+                        })
+                        
+                    } else{
+                        res.json({
+                            "status": "0",
+                            "message": "Cart is empty"
+                        })
+                    }
+                })
+            })
+        })
+    })
 
     //Function for product Details
     function getProductDetail(res ,prod_id,user_id){
+
         db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url +"','',`imd`.`image`) ELSE '' END) AS `image` FROM `product_detail` AS `pd` "+
                     "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
                     "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
@@ -532,6 +925,28 @@ module.exports.controller = (app, io, socket_list ) => {
                 })
     }
 
+    //Function to get user items in cart
+    function getUserCart(res, user_id, callback){
+        db.query("SELECT `ucd`.`cart_id`, `ucd`.`qty`, `ucd`.`user_id`, `ucd`.`prod_id`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, `od`.`start_date`, `od`.`end_date`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, (CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) AS `item_price`, ((CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) * `ucd`.`qty`) AS `total_price` FROM `cart_detail` AS `ucd` "+
+                "INNER JOIN `product_detail` AS `pd` ON `pd`.`prod_id` = `ucd`.`prod_id` AND `pd`.`status` = 1 "+
+                "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
+                "INNER JOIN `category_details` AS `cd` ON `cd`.`cat_id` = `pd`.`cat_id` AND `cd`.`status` = 1 "+
+                "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`user_id` = ? AND `fd`.`status`= 1 "+
+                "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
+                "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id` = `td`.`type_id` AND `td`.`status` = 1 "+
+                "WHERE `ucd`.`user_id` = ? AND `ucd`.`status` = ? GROUP BY `pd`.`prod_id` ;",[user_id, user_id,"1"], (err,result) => {
+                    if(err){
+                        helper.ThrowHtmlError(err, res);
+                        return
+                    }
+
+                    var total= result.map((cObj) => {
+                        return cObj.total_price
+                    }).reduce((patSum, a) => patSum + a, 0)
+
+                    return callback(result, total)
+                })
+    }
     
 }
 

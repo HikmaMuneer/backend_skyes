@@ -53,9 +53,15 @@ module.exports.controller = (app, io, socket_list ) => {
     const msg_area_update = "Area updated successfully";
     const msg_area_delete = "Area deleted successfully";
 
-    //Messages for area
+    //Messages for offer
     const msg_offer_added = "Offer added successfully";
     const msg_offer_delete = "Offer deleted successfully";
+
+    //Messages for promo codes
+    const msg_added = "Already been added";
+    const msg_promo_code_added = "Promo code added successfully";
+    const msg_promo_code_update = "Promo code updated successfully";
+    const msg_promo_code_delete = "Promo code deleted successfully";
 
 
 
@@ -1353,6 +1359,147 @@ module.exports.controller = (app, io, socket_list ) => {
                 })
         }, "2")
     })
+
+    //Add promo code Endpoint
+    app.post('/api/admin/promo_code_add', (req, res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["code","title","description","type","min_order_amount", "max_discount_amount","offer_price","start_date","end_date"],() => {
+                db.query("SELECT `promo_code_id` FROM `promo_code_detail` WHERE `code` =? AND `status`=1 ", [reqObj.code], (err,result) =>{
+
+                    if(err){
+                        helper.ThrowHtmlError(err, res)
+                        return
+                    }
+
+                    if(result.length > 0){
+                        res.json({
+                            "status": "0",
+                            "message":msg_added
+                        })
+                    }else{
+                        db.query("INSERT INTO `promo_code_detail`(`code`, `title`, `description`, `type`, `min_order_amount`, `max_discount_amount`, `offer_price`, `start_date`, `end_date`) VALUES (?,?,?, ?,?,?, ?,?,?)",[
+                            reqObj.code, reqObj.title, reqObj.description, reqObj.type, reqObj.min_order_amount, reqObj.max_discount_amount, reqObj.offer_price, reqObj.start_date, reqObj.end_date], (err, result) =>{
+                                if(err){
+                                    helper.ThrowHtmlError(err, res)
+                                    return
+                                }
+
+                                if(result){
+
+                                    res.json({
+                                        "status": "1",
+                                        "message":msg_promo_code_added
+                                    })
+
+                                } else{
+                                    res.json({
+                                        "status": "0",
+                                        "message":msg_fail
+                                    })
+                                }
+                            })
+                    }
+                })
+            })
+        }, "2")
+    })
+
+    //Update promo code Endpoint
+    app.post('/api/admin/promo_code_update', (req, res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["promo_code_id","title","description","type","min_order_amount", "max_discount_amount","offer_price","start_date","end_date"],() => {
+                
+                        db.query("UPDATE `promo_code_detail` SET `title`= ?,`description`= ?,`type`= ?,`min_order_amount`= ?,`max_discount_amount`= ?,`offer_price`= ?,`start_date`= ?,`end_date`= ?,`modify_date`= NOW() WHERE `promo_code_id` = ? AND `start_date`>= NOW() AND `status`= 1 ",[
+                            reqObj.title, reqObj.description, reqObj.type, reqObj.min_order_amount, reqObj.max_discount_amount, reqObj.offer_price, reqObj.start_date, reqObj.end_date, reqObj.promo_code_id
+                        ], (err, result) =>{
+
+                                if(err){
+                                    helper.ThrowHtmlError(err, res)
+                                    return
+                                }
+
+                                if(result.affectedRows > 0){
+                                    res.json({
+                                        "status": "1",
+                                        "message":msg_promo_code_update
+                                    })
+
+                                } else{
+                                    res.json({
+                                        "status": "0",
+                                        "message":msg_fail
+                                    })
+                                }
+                            })
+            })
+        }, "2")
+    })
+
+    //Delete promo code Endpoint
+    app.post('/api/admin/promo_code_delete', (req, res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["promo_code_id"],() => {
+                
+                        db.query("UPDATE `promo_code_detail` SET `status`= 2, `modify_date`= NOW() WHERE `promo_code_id` = ? AND  `status`= 1 ",[reqObj.promo_code_id
+                        ], (err, result) =>{
+
+                                if(err){
+                                    helper.ThrowHtmlError(err, res)
+                                    return
+                                }
+
+                                if(result.affectedRows > 0){
+                                    res.json({
+                                        "status": "1",
+                                        "message":msg_promo_code_delete
+                                    })
+
+                                } else{
+                                    res.json({
+                                        "status": "0",
+                                        "message":msg_fail
+                                    })
+                                }
+                            })
+            })
+        }, "2")
+    })
+
+    //List of promo code Endpoint
+    app.post('/api/admin/promo_code_list', (req, res) =>{
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+
+                db.query("SELECT `promo_code_id`, `code`, `title`, `description`, `type`, `min_order_amount`, `max_discount_amount`, `offer_price`, `start_date`, `end_date`, `created_date`, `modify_date` FROM `promo_code_detail` WHERE `status` = 1 ORDER BY `promo_code_id` DESC",[], (err, result) =>{
+
+                        if(err){
+                            helper.ThrowHtmlError(err, res)
+                             return
+                        }
+
+                        res.json({
+                            "status": "0",
+                            "payload": result,
+                           "message":msg_success
+                        })
+                            
+                })
+
+        }, "2")
+    })
+
+
 
 }
 
