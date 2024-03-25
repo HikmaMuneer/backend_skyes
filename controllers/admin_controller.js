@@ -1499,6 +1499,80 @@ module.exports.controller = (app, io, socket_list ) => {
         }, "2")
     })
 
+    //List of new orders
+    app.post('app/admin/new_orders_list', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            db.query("SELECT `od`.`order_id`, `od`.`cart_id`, `od`.`total_price`, `od`.`user_pay_price`, `od`.`discount_price`, `od`.`deliver_price`, `od`.`deliver_type`, `od`.`payment_type`, `od`.`payment_status`, `od`.`order_status`, `od`.`status`, `od`.`created_date`, GROUP_CONCAT(DISTINCT `pd`.`name` SEPARATOR ',') AS `names`, GROUP_CONCAT(DISTINCT (CASE WHEN `imd`.`image` != '' THEN CONCAT( '"+ image_base_url +"','',`imd`.`image`) ELSE '' END) SEPARATOR ',') AS `images` FROM `order_detail` AS `od` "+
+            "INNER JOIN `cart_detail` AS `cd` ON FIND_IN_SET(`cd`.`cart_id`,`od`.`cart_id`) > 0 "+
+            "INNER JOIN `product_detail` AS `pd` ON `cd`.`prod_id` =  `pd`.`prod_id` "+
+            "INNER JOIN `image_detail` AS `imd` ON `imd`.`prod_id` =  `pd`.`prod_id` "+
+            "WHERE (`od`.`payment_type` = 1 OR (`od`.`payment_type` = 2 AND od`.`payment_status` = 2) ) AND `order_status` <= 2 GROUP BY `od`.`order_id` ORDER BY `od`.`order_id`", [], (err, result) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res)
+                    return
+                }
+
+                res.json({
+                    "status":"1",
+                    "payload": result,
+                    "message":msg_success
+                })
+            })
+        }, '2')
+    })
+
+    //List of completed orders
+    app.post('app/admin/completed_orders_list', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            db.query("SELECT `od`.`order_id`, `od`.`cart_id`, `od`.`total_price`, `od`.`user_pay_price`, `od`.`discount_price`, `od`.`deliver_price`, `od`.`deliver_type`, `od`.`payment_type`, `od`.`payment_status`, `od`.`order_status`, `od`.`status`, `od`.`created_date`, GROUP_CONCAT(DISTINCT `pd`.`name` SEPARATOR ',') AS `names`, GROUP_CONCAT(DISTINCT (CASE WHEN `imd`.`image` != '' THEN CONCAT( '"+ image_base_url +"','',`imd`.`image`) ELSE '' END) SEPARATOR ',') AS `images` FROM `order_detail` AS `od` "+
+            "INNER JOIN `cart_detail` AS `cd` ON FIND_IN_SET(`cd`.`cart_id`,`od`.`cart_id`) > 0 "+
+            "INNER JOIN `product_detail` AS `pd` ON `cd`.`prod_id` =  `pd`.`prod_id` "+
+            "INNER JOIN `image_detail` AS `imd` ON `imd`.`prod_id` =  `pd`.`prod_id` "+
+            "WHERE (`od`.`payment_type` = 1 OR (`od`.`payment_type` = 2 AND od`.`payment_status` = 2) ) AND `order_status` = 3 GROUP BY `od`.`order_id` ORDER BY `od`.`order_id`", [], (err, result) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res)
+                    return
+                }
+
+                res.json({
+                    "status":"1",
+                    "payload": result,
+                    "message":msg_success
+                })
+            })
+        }, '2')
+    })
+
+    //List of cancelled orders
+    app.post('app/admin/cancel_decline_orders_list', (req, res) => {
+        helper.Dlog(req.body)
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            db.query("SELECT `od`.`order_id`, `od`.`cart_id`, `od`.`total_price`, `od`.`user_pay_price`, `od`.`discount_price`, `od`.`deliver_price`, `od`.`deliver_type`, `od`.`payment_type`, `od`.`payment_status`, `od`.`order_status`, `od`.`status`, `od`.`created_date`, GROUP_CONCAT(DISTINCT `pd`.`name` SEPARATOR ',') AS `names`, GROUP_CONCAT(DISTINCT (CASE WHEN `imd`.`image` != '' THEN CONCAT( '"+ image_base_url +"','',`imd`.`image`) ELSE '' END) SEPARATOR ',') AS `images` FROM `order_detail` AS `od` "+
+            "INNER JOIN `cart_detail` AS `cd` ON FIND_IN_SET(`cd`.`cart_id`,`od`.`cart_id`) > 0 "+
+            "INNER JOIN `product_detail` AS `pd` ON `cd`.`prod_id` =  `pd`.`prod_id` "+
+            "INNER JOIN `image_detail` AS `imd` ON `imd`.`prod_id` =  `pd`.`prod_id` "+
+            "WHERE (`od`.`payment_type` = 1 OR (`od`.`payment_type` = 2 AND od`.`payment_status` = 2) ) AND `order_status` > 3 GROUP BY `od`.`order_id` ORDER BY `od`.`order_id`", [], (err, result) => {
+                if(err){
+                    helper.ThrowHtmlError(err, res)
+                    return
+                }
+
+                res.json({
+                    "status":"1",
+                    "payload": result,
+                    "message":msg_success
+                })
+            })
+        }, '2')
+    })
 
 
 }

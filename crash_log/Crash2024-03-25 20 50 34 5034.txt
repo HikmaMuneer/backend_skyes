@@ -1,4 +1,4 @@
-Error: ER_PARSE_ERROR: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '`product_detail`(`cat_id`, `brand_id`, `type_id`, `name`, `detail`, `unit_nam...' at line 1
+Error: ER_NON_UNIQ_ERROR: Column 'created_date' in field list is ambiguous
     at Sequence._packetToError (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Sequence.js:47:14)
     at Query.ErrorPacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Query.js:79:18)
     at Protocol._parsePacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/Protocol.js:291:23)
@@ -13,10 +13,10 @@ Error: ER_PARSE_ERROR: You have an error in your SQL syntax; check the manual th
     at Protocol._enqueue (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/Protocol.js:144:48)
     at Connection.query (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/Connection.js:198:25)
     at Object.query (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/db_helpers.js:66:16)
-    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/admin_controller.js:571:28
-    at Object.CheckParameterValid (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/helpers.js:69:20)
-    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/admin_controller.js:556:28
-    at Object.CheckParameterValid (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/helpers.js:69:20)
-    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/admin_controller.js:555:25
-    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/multiparty/index.js:139:9
-    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/multiparty/index.js:118:9
+    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/login_controller.js:953:16
+    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/login_controller.js:1066:28
+    at Query.<anonymous> (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/db_helpers.js:67:24)
+    at Query.<anonymous> (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/Connection.js:526:10)
+    at Query._callback (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/Connection.js:488:16)
+    at Sequence.end (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Sequence.js:83:24)
+    at Query._handleFinalResultPacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Query.js:149:8)

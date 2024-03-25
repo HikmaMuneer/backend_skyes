@@ -1,4 +1,4 @@
-Error: ER_WRONG_VALUE_COUNT_ON_ROW: Column count doesn't match value count at row 1
+Error: ER_NONUNIQ_TABLE: Not unique table/alias: 'od'
     at Sequence._packetToError (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Sequence.js:47:14)
     at Query.ErrorPacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Query.js:79:18)
     at Protocol._parsePacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/Protocol.js:291:23)
@@ -13,10 +13,10 @@ Error: ER_WRONG_VALUE_COUNT_ON_ROW: Column count doesn't match value count at ro
     at Protocol._enqueue (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/Protocol.js:144:48)
     at Connection.query (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/Connection.js:198:25)
     at Object.query (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/db_helpers.js:66:16)
-    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/login_controller.js:71:24
+    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/login_controller.js:981:16
+    at Object.CheckParameterValid (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/helpers.js:69:20)
+    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/login_controller.js:978:20
+    at /Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/controllers/login_controller.js:1116:28
     at Query.<anonymous> (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/helpers/db_helpers.js:67:24)
     at Query.<anonymous> (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/Connection.js:526:10)
     at Query._callback (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/Connection.js:488:16)
-    at Sequence.end (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Sequence.js:83:24)
-    at Query._handleFinalResultPacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Query.js:149:8)
-    at Query.EofPacket (/Users/hikmamuneer/Desktop/iOS/skyes_wardrobe_node/node_modules/mysql/lib/protocol/sequences/Query.js:133:8)
