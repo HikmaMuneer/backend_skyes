@@ -1085,7 +1085,7 @@ module.exports.controller = (app, io, socket_list ) => {
     var reqObj = req.body
 
     checkAccessToken(req.headers, res, (userObj) => {
-        db.query("UPDATE `notification_details` SET `is_read`= 1 AND `modify_date`= NOW() WHERE `user_id` = ? AND `status` = 1", [userObj.user_id], (err, result) => {
+        db.query("UPDATE `notification_details` SET `is_read`= 2 ,`modify_date`= NOW() WHERE `user_id` = ? AND `status` = 1", [userObj.user_id], (err, result) => {
             if(err){
                 helper.ThrowHtmlError(err, res)
                 return
@@ -1110,7 +1110,7 @@ module.exports.controller = (app, io, socket_list ) => {
 
 
     //Update user info endpoint
-    app.post('/api//app/update_profile', (req, res) => {
+    app.post('/api/app/update_profile', (req, res) => {
         helper.Dlog(req.body);
         var reqObj = req.body
 
@@ -1123,7 +1123,7 @@ module.exports.controller = (app, io, socket_list ) => {
                     }
 
                     if(result.affectedRows > 0){
-                        db.query('SELECT `user_id`, `username`, `name`, `email`, `mobile`, `mobile_code`, `password`, `auth_token`, `status`, `created_date` FROM `user_detail` WHERE ``user_id` = ? AND `status` = "1" ', [ userObj.user_id] , (err, result) => {
+                        db.query('SELECT `user_id`, `username`, `name`, `email`, `mobile`, `mobile_code`, `password`, `auth_token`, `status`, `created_date` FROM `user_detail` WHERE `user_id` = ? AND `status` = "1" ', [ userObj.user_id] , (err, result) => {
 
                             if(err) {
                                 helper.ThrowHtmlError(err, res);
@@ -1154,7 +1154,7 @@ module.exports.controller = (app, io, socket_list ) => {
         var reqObj = req.body
 
             helper.CheckParameterValid(res, reqObj, ["email"], () => {
-                db.query("SELECT `user_id`, FROM `user_detail` WHERE `email` = ? ",[reqObj.email], (err, result) => {
+                db.query("SELECT `user_id` FROM `user_detail` WHERE `email` = ? ",[reqObj.email], (err, result) => {
                     if(err){
                         helper.ThrowHtmlError(err, res)
                         return
@@ -1197,7 +1197,7 @@ module.exports.controller = (app, io, socket_list ) => {
         var reqObj = req.body
 
             helper.CheckParameterValid(res, reqObj, ["email", "reset_code"], () => {
-                db.query("SELECT `user_id`, FROM `user_detail` WHERE `email` = ? AND `reset_code`= ? ",[reqObj.email, reqObj.reset_code], (err, result) => {
+                db.query("SELECT `user_id` FROM `user_detail` WHERE `email` = ? AND `reset_code`= ? ",[reqObj.email, reqObj.reset_code], (err, result) => {
                     if(err){
                         helper.ThrowHtmlError(err, res)
                         return
@@ -1268,9 +1268,36 @@ module.exports.controller = (app, io, socket_list ) => {
             })
     })
 
+    //Change password
+    app.post('/api/app/change_password', (req, res) => {
+        helper.Dlog(req.body);
+        var reqObj = req.body
+
+        checkAccessToken(req.headers, res, (userObj) => {
+            helper.CheckParameterValid(res, reqObj, ["current_password","new_password"], () => {
+                db.query("UPDATE `user_detail` SET `password`=?, `modify_date`= NOW() WHERE `user_id` = ? AND `password` = ? ",[reqObj.new_password, userObj.user_id, reqObj.current_password], (err, result) => {
+                    if(err){
+                        helper.ThrowHtmlError(err, res)
+                        return
+                    }
+
+                    if(result.affectedRows > 0){
+                        res.json({ "status": "1", "message": msg_success })            
+                    } else{
+                        res.json({
+                            "status": "0",
+                            "message": msg_fail
+                        })
+                    }
+                })
+            })
+        }, "1")
+
+    } )
 
 
-    
+
+
     //Function for product Details
     function getProductDetail(res ,prod_id,user_id){
 
