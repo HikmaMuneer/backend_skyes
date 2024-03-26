@@ -128,3 +128,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+crash_log/Crash2024-03-26 03 15 29 1529.txt
+crash_log/Crash2024-03-26 03 20 57 2057.txt
+crash_log/Crash2024-03-26 03 25 12 2512.txt
+crash_log/Crash2024-03-26 03 32 00 320.txt
