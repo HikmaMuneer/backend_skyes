@@ -366,7 +366,7 @@ module.exports.controller = (app, io, socket_list ) => {
 
             checkAccessToken(req.headers, res, (uObj) =>{
                  
-                    db.query("SELECT `cat_id`, `cat_name`, (CASE WHEN `image` != '' THEN CONCAT('"+ helper.ImagePath() +"','',`image`) ELSE `image` END) AS `image`, `color` FROM `category_details` WHERE `status`= ?" , [
+                    db.query("SELECT `cat_id`, `cat_name`, (CASE WHEN `image` != '' THEN CONCAT('"+ image_base_url +"','',`image`) ELSE `image` END) AS `image`, `color` FROM `category_details` WHERE `status`= ?" , [
                        "1",
                     ], (err, result) => {
 
@@ -657,7 +657,7 @@ module.exports.controller = (app, io, socket_list ) => {
                                     }
                                 })
 
-                                res.json({ "status": "1", "message": msg_product_added })
+                                res.json({ "status": "1", "message": msg_product_added });
                                 
                             }else{
                                 res.json({ "status": "0", "message": msg_fail })
