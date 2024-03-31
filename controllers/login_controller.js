@@ -1465,7 +1465,7 @@ module.exports.controller = (app, io, socket_list ) => {
 
     //Function to get user items in cart
     function getUserCart(res, user_id, callback){
-        db.query("SELECT `ucd`.`cart_id`, `ucd`.`qty`, `ucd`.`user_id`, `ucd`.`prod_id`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, `od`.`start_date`, `od`.`end_date`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, (CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) AS `item_price`, ((CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) * `ucd`.`qty`) AS `total_price` FROM `cart_detail` AS `ucd` "+
+        db.query("SELECT `ucd`.`cart_id`, `ucd`.`qty`, `ucd`.`color`, `ucd`.`size`,`ucd`.`user_id`, `ucd`.`prod_id`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, `od`.`start_date`, `od`.`end_date`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image`, `cd`.`cat_name`, `td`.`type_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, (CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) AS `item_price`, ((CASE WHEN `od`.`price` IS NULL THEN `pd`.`price` ELSE `od`.`price` END) * `ucd`.`qty`) AS `total_price` FROM `cart_detail` AS `ucd` "+
                 "INNER JOIN `product_detail` AS `pd` ON `pd`.`prod_id` = `ucd`.`prod_id` AND `pd`.`status` = 1 "+
                 "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
                 "INNER JOIN `category_details` AS `cd` ON `cd`.`cat_id` = `pd`.`cat_id` AND `cd`.`status` = 1 "+
@@ -1485,8 +1485,6 @@ module.exports.controller = (app, io, socket_list ) => {
                     return callback(result, total)
                 })
     }
-
-
     
 }
 
