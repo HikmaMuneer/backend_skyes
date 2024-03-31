@@ -482,7 +482,7 @@ module.exports.controller = (app, io, socket_list ) => {
                     if(result.affectedRows > 0){
 
                         res.json({
-                            "status":"0",
+                            "status":"1",
                             "message": msg_update_to_item
                         })
                         
@@ -1463,49 +1463,49 @@ module.exports.controller = (app, io, socket_list ) => {
 
 
     //Function for product Details
-    function getProductDetail(res ,prod_id,user_id){
+    // function getProductDetail(res ,prod_id,user_id){
 
-        db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url +"','',`imd`.`image`) ELSE '' END) AS `image` FROM `product_detail` AS `pd` "+
-            "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
-            "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
-            "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`user_id` = ? AND `fd`.`status`= 1 "+
-            "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
-            "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
-            "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
-            "WHERE `pd`.`status`=? AND `pd`.`prod_id`= ? ; "+
+    //     db.query("SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, ( CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, (CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url +"','',`imd`.`image`) ELSE '' END) AS `image` FROM `product_detail` AS `pd` "+
+    //         "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` "+
+    //         "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 "+
+    //         "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`user_id` = ? AND `fd`.`status`= 1 "+
+    //         "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` "+
+    //         "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() "+
+    //         "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` "+
+    //         "WHERE `pd`.`status`=? AND `pd`.`prod_id`= ? ; "+
                     
-            "SELECT `quantity_id`, `prod_id`, `prod_name`, `quantity` FROM `quantity_detail` WHERE `prod_id`=? AND `status`= ? ORDER BY `prod_name` ;" +
+    //         "SELECT `quantity_id`, `prod_id`, `prod_name`, `quantity` FROM `quantity_detail` WHERE `prod_id`=? AND `status`= ? ORDER BY `prod_name` ;" +
                     
-            "SELECT `img_id`, `prod_id`, (CASE WHEN `image` != '' THEN CONCAT( '" + image_base_url +"','', `image`) ELSE '' END) AS `image` FROM `image_detail` WHERE `prod_id`=? AND `status`= ?", [
+    //         "SELECT `img_id`, `prod_id`, (CASE WHEN `image` != '' THEN CONCAT( '" + image_base_url +"','', `image`) ELSE '' END) AS `image` FROM `image_detail` WHERE `prod_id`=? AND `status`= ?", [
 
-                    user_id, "1", prod_id, prod_id, "1", prod_id, "1",
+    //                 user_id, "1", prod_id, prod_id, "1", prod_id, "1",
 
-                    ], (err, result) => {
+    //                 ], (err, result) => {
 
-                        if(err){
-                            helper.ThrowHtmlError(err, res);
-                            return;
-                        }
+    //                     if(err){
+    //                         helper.ThrowHtmlError(err, res);
+    //                         return;
+    //                     }
 
-                        // result= result.replace_null()
-                        // helper.Dlog(result);
+    //                     // result= result.replace_null()
+    //                     // helper.Dlog(result);
 
-                        if(result[0].length > 0){
+    //                     if(result[0].length > 0){
 
-                            result[0][0].quantity_list = result[1];
-                            result[0][0].images = result[2];
+    //                         result[0][0].quantity_list = result[1];
+    //                         result[0][0].images = result[2];
 
-                            res.json({
-                                "status": "1", "payload": result[0][0]
-                            });
+    //                         res.json({
+    //                             "status": "1", "payload": result[0][0]
+    //                         });
 
-                        }else{
-                            res.json({"status":"0", "message": "invalid item"})
-                        }
+    //                     }else{
+    //                         res.json({"status":"0", "message": "invalid item"})
+    //                     }
 
                         
-                })
-    }
+    //             })
+    // }
 
     //Function to get user items in cart
     function getUserCart(res, user_id, callback){
@@ -1529,6 +1529,121 @@ module.exports.controller = (app, io, socket_list ) => {
                     return callback(result, total)
                 })
     }
+
+    // function getProductDetail(res, prod_id, user_id) {
+    //     db.query(
+    //         "SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, " +
+    //         "GROUP_CONCAT(DISTINCT sd.size_name) AS size_names, " +
+    //         "GROUP_CONCAT(DISTINCT cod.color_name) AS color_names, " +
+    //         "(CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, " +
+    //         "IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, " +
+    //         "IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, " +
+    //         "(CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image` " +
+    //         "FROM `product_detail` AS `pd` " +
+    //         "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` " +
+    //         "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 " +
+    //         "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`user_id` = ? AND `fd`.`status`= 1 " +
+    //         "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` " +
+    //         "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() " +
+    //         "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` " +
+    //         "LEFT JOIN `size_details` AS `sd` ON `pd`.`prod_id` = `sd`.`prod_id` " +
+    //         "LEFT JOIN `color_details` AS `cod` ON `pd`.`prod_id` = `cod`.`prod_id` " +
+    //         "WHERE `pd`.`status`=? AND `pd`.`prod_id`= ? " +
+    //         "GROUP BY `pd`.`prod_id`; " +
+    
+    //         "SELECT `quantity_id`, `prod_id`, `prod_name`, `quantity` FROM `quantity_detail` WHERE `prod_id`=? AND `status`= ? ORDER BY `prod_name` ;" +
+    
+    //         "SELECT `img_id`, `prod_id`, (CASE WHEN `image` != '' THEN CONCAT( '" + image_base_url + "','', `image`) ELSE '' END) AS `image` FROM `image_detail` WHERE `prod_id`=? AND `status`= ?", [
+    
+    //             user_id, "1", prod_id, prod_id, "1", prod_id, "1",
+    
+    //         ],
+    //         (err, result) => {
+    //             if (err) {
+    //                 helper.ThrowHtmlError(err, res);
+    //                 return;
+    //             }
+    
+    //             if (result[0].length > 0) {
+    //                 result[0][0].quantity_list = result[1];
+    //                 result[0][0].images = result[2];
+    //                 // result[0][0].colors = result[3];
+    //                 // result[0][0].sizes = result[4];
+    //                 res.json({
+    //                     "status": "1",
+    //                     "payload": result[0][0]
+    //                 });
+    //             } else {
+    //                 res.json({
+    //                     "status": "0",
+    //                     "message": "invalid item"
+    //                 });
+    //             }
+    //         }
+    //     )
+    // }
+    
+    function getProductDetail(res, prod_id, user_id) {
+        db.query(
+            "SELECT `pd`.`prod_id`, `pd`.`cat_id`, `pd`.`brand_id`, `pd`.`type_id`, `pd`.`name`, `pd`.`detail`, `pd`.`unit_name`, `pd`.`unit_value`, `pd`.`quantity`, `pd`.`price`, `pd`.`created_date`, `pd`.`modify_date`, `cd`.`cat_name`, " +
+            "GROUP_CONCAT(DISTINCT sd.size_name) AS size_names, " +
+            "GROUP_CONCAT(DISTINCT cod.color_name) AS color_names, " +
+            "(CASE WHEN `fd`.`fav_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_fav`, " +
+            "IFNULL( `bd`.`brand_name`, '') AS `brand_name`, `td`.`type_name`, IFNULL(`od`.`price`,`pd`.`price`) AS `offer_price`, " +
+            "IFNULL(`od`.`start_date`,'') as `start_date`, IFNULL(`od`.`end_date`,'') as `end_date`, (CASE WHEN `od`.`offer_id` IS NOT NULL THEN 1 ELSE 0 END) AS `is_offer_active`, " +
+            "(CASE WHEN `imd`.`image` != '' THEN CONCAT( '" + image_base_url + "','',`imd`.`image`) ELSE '' END) AS `image` " +
+            "FROM `product_detail` AS `pd` " +
+            "INNER JOIN `category_details` AS `cd` ON `pd`.`cat_id`=`cd`.`cat_id` " +
+            "INNER JOIN `image_detail` AS `imd` ON `pd`.`prod_id` = `imd`.`prod_id` AND `imd`.`status` = 1 " +
+            "LEFT JOIN `favourite_detail` AS `fd` ON `pd`.`prod_id` = `fd`.`prod_id` AND `fd`.`user_id` = ? AND `fd`.`status`= 1 " +
+            "LEFT JOIN `brand_detail` AS `bd` ON `pd`.`brand_id`=`bd`.`brand_id` " +
+            "LEFT JOIN `offer_detail` AS `od` ON `pd`.`prod_id`=`od`.`prod_id` AND `od`.`status` = 1 AND `od`.`start_date` <= NOW() AND `od`.`end_date` >= NOW() " +
+            "INNER JOIN `type_detail` AS `td` ON `pd`.`type_id`=`td`.`type_id` " +
+            "LEFT JOIN `size_details` AS `sd` ON `pd`.`prod_id` = `sd`.`prod_id` " +
+            "LEFT JOIN `color_details` AS `cod` ON `pd`.`prod_id` = `cod`.`prod_id` " +
+            "WHERE `pd`.`status`=? AND `pd`.`prod_id`= ? " +
+            "GROUP BY `pd`.`prod_id`; " +
+    
+            "SELECT `quantity_id`, `prod_id`, `prod_name`, `quantity` FROM `quantity_detail` WHERE `prod_id`=? AND `status`= ? ORDER BY `prod_name` ;" +
+    
+            "SELECT `img_id`, `prod_id`, (CASE WHEN `image` != '' THEN CONCAT( '" + image_base_url + "','', `image`) ELSE '' END) AS `image` FROM `image_detail` WHERE `prod_id`=? AND `status`= ?", [
+    
+                user_id, "1", prod_id, prod_id, "1", prod_id, "1",
+    
+            ],
+            (err, result) => {
+                if (err) {
+                    helper.ThrowHtmlError(err, res);
+                    return;
+                }
+    
+                if (result[0].length > 0) {
+                    const payload = result[0][0];
+                    payload.quantity_list = result[1];
+                    payload.images = result[2];
+    
+                    // Extract colors and sizes from the result
+                    const colors = payload.color_names.split(",");
+                    const sizes = payload.size_names.split(",");
+    
+                    // Include colors and sizes in the payload
+                    payload.colors = colors;
+                    payload.sizes = sizes;
+    
+                    res.json({
+                        "status": "1",
+                        "payload": payload
+                    });
+                } else {
+                    res.json({
+                        "status": "0",
+                        "message": "invalid item"
+                    });
+                }
+            }
+        )
+    }
+
     
 }
 
